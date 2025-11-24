@@ -76,8 +76,9 @@
             z-index: 100;
         }
         header h1 { font-size: 1.1rem; margin: 0; color: var(--text-muted); }
-        .top-info { text-align: right; font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
+        .top-info { text-align: right; font-size: 0.9rem; font-weight: 600; color: var(--text-main); display: flex; gap: 20px; align-items: center; }
         .timer-display { color: var(--danger); font-family: monospace; font-size: 1.2rem; }
+        .reset-link { font-size: 0.8rem; color: #999; text-decoration: underline; cursor: pointer; }
 
         /* Main Container */
         main {
@@ -169,6 +170,7 @@
         <div class="top-info">
             <div>PID: <span id="display-pid">----</span></div>
             <div>Global Time: <span id="global-timer" class="timer-display">00:00:00</span></div>
+            <div onclick="resetStudy()" class="reset-link" title="Clear all data and restart">Start Over</div>
         </div>
     </header>
 
@@ -453,16 +455,14 @@
 
     <!-- Audio Element -->
     <script>
-        // Simple Beep Sound (Base64 to avoid external file dep)
-        const beepSound = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"); // Placeholder short beep
-        
+        const beepSound = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU");
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         function playAlertSound() {
             if (audioContext.state === 'suspended') audioContext.resume();
             const oscillator = audioContext.createOscillator();
             const gainNode = audioContext.createGain();
             oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
             oscillator.connect(gainNode);
             gainNode.connect(audioContext.destination);
             oscillator.start();
@@ -473,11 +473,12 @@
 
     <script>
         // --- State Management ---
-        const state = {
+        let state = {
+            step: 'login', // login, overview, demographics, tutorial, task, survey, debrief
             pid: null,
-            condition: null, // A, B, C, D
-            startTime: null, // Global start
-            taskIndex: 0, // 0 = Task 1, 1 = Task 2
+            condition: null,
+            startTime: null,
+            taskIndex: 0,
             currentTaskStartTime: null,
             results: {
                 task1Time: 0,
@@ -488,17 +489,10 @@
         let globalInterval;
         let taskInterval;
 
-        // --- Configuration ---
-        // A: S1 Log -> S2 Graph
-        // B: S2 Log -> S1 Graph
-        // C: S1 Graph -> S2 Log
-        // D: S2 Graph -> S1 Log
-        
-        // --- NEW LINKS CONFIGURATION ---
         const LINKS = {
             ticket: "https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_9oGkjSuhbBSiXOu",
-            nasatlx_log: "https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_eW0kItMox2WiZLM", // nasatlx1
-            nasatlx_graph: "https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_a3R9F2TI9dU9jD0", // nasatlxG
+            nasatlx_log: "https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_eW0kItMox2WiZLM",
+            nasatlx_graph: "https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_a3R9F2TI9dU9jD0",
             kibana_s1: "https://beav.es/kibanas1",
             kibana_s2: "https://beav.es/kibanas2",
             asg_s1: "https://beav.es/asg1",
@@ -506,44 +500,10 @@
         };
 
         const scenarios = {
-            s1_log: {
-                name: "Scenario 1 (Log Only)",
-                links: [
-                    { name: "Kibana Environment", url: LINKS.kibana_s1 },
-                    { name: "Incident Ticket", url: LINKS.ticket }
-                ],
-                survey: LINKS.nasatlx_log,
-                dataView: "scenario1-logs"
-            },
-            s2_log: {
-                name: "Scenario 2 (Log Only)",
-                links: [
-                    { name: "Kibana Environment", url: LINKS.kibana_s2 },
-                    { name: "Incident Ticket", url: LINKS.ticket }
-                ],
-                survey: LINKS.nasatlx_log,
-                dataView: "scenario2-logs"
-            },
-            s1_graph: {
-                name: "Scenario 1 (Graph/ASG)",
-                links: [
-                    { name: "Kibana Environment", url: LINKS.kibana_s1 },
-                    { name: "Incident Ticket", url: LINKS.ticket },
-                    { name: "Attack Summary Graph (ASG)", url: LINKS.asg_s1 }
-                ],
-                survey: LINKS.nasatlx_graph,
-                dataView: "scenario1-logs"
-            },
-            s2_graph: {
-                name: "Scenario 2 (Graph/ASG)",
-                links: [
-                    { name: "Kibana Environment", url: LINKS.kibana_s2 },
-                    { name: "Incident Ticket", url: LINKS.ticket },
-                    { name: "Attack Summary Graph (ASG)", url: LINKS.asg_s2 }
-                ],
-                survey: LINKS.nasatlx_graph,
-                dataView: "scenario2-logs"
-            }
+            s1_log: { name: "Scenario 1 (Log Only)", links: [{ name: "Kibana Environment", url: LINKS.kibana_s1 }, { name: "Incident Ticket", url: LINKS.ticket }], survey: LINKS.nasatlx_log, dataView: "scenario1-logs" },
+            s2_log: { name: "Scenario 2 (Log Only)", links: [{ name: "Kibana Environment", url: LINKS.kibana_s2 }, { name: "Incident Ticket", url: LINKS.ticket }], survey: LINKS.nasatlx_log, dataView: "scenario2-logs" },
+            s1_graph: { name: "Scenario 1 (Graph/ASG)", links: [{ name: "Kibana Environment", url: LINKS.kibana_s1 }, { name: "Incident Ticket", url: LINKS.ticket }, { name: "Attack Summary Graph (ASG)", url: LINKS.asg_s1 }], survey: LINKS.nasatlx_graph, dataView: "scenario1-logs" },
+            s2_graph: { name: "Scenario 2 (Graph/ASG)", links: [{ name: "Kibana Environment", url: LINKS.kibana_s2 }, { name: "Incident Ticket", url: LINKS.ticket }, { name: "Attack Summary Graph (ASG)", url: LINKS.asg_s2 }], survey: LINKS.nasatlx_graph, dataView: "scenario2-logs" }
         };
 
         const conditionMap = {
@@ -553,7 +513,71 @@
             'D': ['s2_graph', 's1_log']
         };
 
-        // --- Functions ---
+        // --- Storage Functions ---
+        function saveState() {
+            localStorage.setItem('studyState', JSON.stringify(state));
+        }
+
+        function restoreState() {
+            const saved = localStorage.getItem('studyState');
+            if (saved) {
+                state = JSON.parse(saved);
+                console.log("Restoring State:", state);
+
+                if (state.step === 'login') return; // Do nothing, stay on login
+                
+                // Hide Login
+                hide('login-screen');
+
+                // Restore Header info
+                document.getElementById('display-pid').textContent = state.pid;
+                document.getElementById('app-header').classList.remove('hidden');
+                
+                // Restart Global Timer
+                if (state.startTime) {
+                    startGlobalTimer();
+                }
+
+                // Navigate to correct section
+                if (state.step === 'overview') show('overview-screen');
+                else if (state.step === 'demographics') show('demographics-screen');
+                else if (state.step === 'tutorial') show('tutorial-screen');
+                else if (state.step === 'task') {
+                    // We need to re-initialize the task UI without resetting the start time
+                    restoreTaskUI();
+                }
+                else if (state.step === 'survey') {
+                    loadSurvey(true); // pass flag to indicate we are restoring
+                }
+                else if (state.step === 'debrief') {
+                    endStudy(true); // pass flag to indicate restore
+                }
+            }
+        }
+
+        function resetStudy() {
+            if(confirm("Are you sure you want to delete all progress and start over?")) {
+                localStorage.removeItem('studyState');
+                location.reload();
+            }
+        }
+
+        // --- Logic ---
+
+        window.onload = function() {
+            restoreState();
+        };
+
+        function startGlobalTimer() {
+            clearInterval(globalInterval);
+            globalInterval = setInterval(() => {
+                const elapsed = Date.now() - state.startTime;
+                if (elapsed > 2 * 60 * 60 * 1000) {
+                    // limit alert?
+                }
+                document.getElementById('global-timer').textContent = formatTime(elapsed);
+            }, 1000);
+        }
 
         function startStudy() {
             const pidInput = document.getElementById('pid-input').value;
@@ -564,7 +588,6 @@
                 return;
             }
 
-            // Determine Condition
             const lastDigit = parseInt(pidInput.toString().slice(-1));
             state.pid = pidInput;
 
@@ -572,25 +595,19 @@
             else if ([2, 7].includes(lastDigit)) state.condition = 'B';
             else if ([3, 6].includes(lastDigit)) state.condition = 'C';
             else if ([4, 5].includes(lastDigit)) state.condition = 'D';
-            else state.condition = 'A'; // Fallback
+            else state.condition = 'A'; 
             
             if(lastDigit === 0) state.condition = 'A';
             if(lastDigit === 9) state.condition = 'D';
 
-            // Start Global Timer
             state.startTime = Date.now();
+            state.step = 'overview';
+            saveState(); // SAVE
+
             document.getElementById('display-pid').textContent = state.pid;
             document.getElementById('app-header').classList.remove('hidden');
             
-            globalInterval = setInterval(() => {
-                const elapsed = Date.now() - state.startTime;
-                if (elapsed > 2 * 60 * 60 * 1000) {
-                    alert("Study time limit reached.");
-                }
-                document.getElementById('global-timer').textContent = formatTime(elapsed);
-            }, 1000);
-
-            // UI Transition
+            startGlobalTimer();
             hide('login-screen');
             show('overview-screen');
         }
@@ -599,6 +616,9 @@
             hide('overview-screen');
             hide('demographics-screen');
             hide('tutorial-screen');
+
+            state.step = stageName;
+            saveState(); // SAVE
 
             if (stageName === 'demographics') show('demographics-screen');
             else if (stageName === 'tutorial') show('tutorial-screen');
@@ -610,18 +630,22 @@
         }
 
         function loadTask(index) {
+            state.step = 'task';
             state.taskIndex = index;
             state.currentTaskStartTime = Date.now();
-            
+            saveState(); // SAVE
+            restoreTaskUI();
+        }
+
+        function restoreTaskUI() {
             const conditionCode = state.condition;
-            const scenarioKey = conditionMap[conditionCode][index];
+            const scenarioKey = conditionMap[conditionCode][state.taskIndex];
             const scenarioData = scenarios[scenarioKey];
 
             // Render Links
             const linksArea = document.getElementById('task-links-area');
-            linksArea.innerHTML = ''; // Clear
+            linksArea.innerHTML = ''; 
             
-            // Inject Links
             scenarioData.links.forEach(link => {
                 const a = document.createElement('a');
                 a.href = link.url;
@@ -632,13 +656,12 @@
                 linksArea.appendChild(a);
             });
 
-            // Update Sidebar
             document.getElementById('sidebar-scenario-name').textContent = scenarioData.dataView;
-            document.getElementById('task-title').textContent = `Task ${index + 1}: ${scenarioData.name}`;
+            document.getElementById('task-title').textContent = `Task ${state.taskIndex + 1}: ${scenarioData.name}`;
 
             show('task-screen');
 
-            // Task Timer (45 min limit)
+            // Task Timer Logic
             clearInterval(taskInterval);
             taskInterval = setInterval(() => {
                 const elapsed = Date.now() - state.currentTaskStartTime;
@@ -649,7 +672,7 @@
                     document.getElementById('task-timer').textContent = "00:00";
                     playAlertSound();
                     alert("Time is up for this scenario. Please stop and record findings.");
-                    stopTask(); // Auto-trigger stop sequence
+                    stopTask(); 
                 } else {
                     const m = Math.floor(timeLeft / 60000);
                     const s = Math.floor((timeLeft % 60000) / 1000);
@@ -667,12 +690,14 @@
 
             alert(`Task Ended. Time recorded: ${formatTime(duration)}`);
             
-            // Go to Survey
+            state.step = 'survey';
+            saveState(); // SAVE
+
             hide('task-screen');
             loadSurvey();
         }
 
-        function loadSurvey() {
+        function loadSurvey(isRestore = false) {
             const conditionCode = state.condition;
             const scenarioKey = conditionMap[conditionCode][state.taskIndex];
             const surveyUrl = scenarios[scenarioKey].survey;
@@ -686,27 +711,26 @@
             hide('survey-screen');
             
             if (state.taskIndex === 0) {
-                // Proceed to Task 2
                 loadTask(1);
             } else {
-                // End Study
                 endStudy();
             }
         }
 
-        function endStudy() {
-            playAlertSound();
+        function endStudy(isRestore = false) {
+            if (!isRestore) {
+                state.step = 'debrief';
+                saveState(); // SAVE
+                playAlertSound();
+            }
             
-            // Get Specific Scenario Names
             const conditionCode = state.condition;
             const task1Key = conditionMap[conditionCode][0];
             const task2Key = conditionMap[conditionCode][1];
 
-            // Populate stats
             document.getElementById('final-pid').textContent = state.pid;
             document.getElementById('final-condition').textContent = state.condition;
             
-            // Set dynamic labels for Task 1 and Task 2 based on what they actually did
             document.getElementById('label-time-1').textContent = scenarios[task1Key].name + ":";
             document.getElementById('final-time-1').textContent = formatTime(state.results.task1Time);
 
@@ -720,11 +744,14 @@
         // --- Helpers ---
         function show(id) {
             const el = document.getElementById(id);
-            el.classList.remove('hidden');
-            el.classList.add('fade-in');
+            if(el) {
+                el.classList.remove('hidden');
+                el.classList.add('fade-in');
+            }
         }
         function hide(id) {
-            document.getElementById(id).classList.add('hidden');
+            const el = document.getElementById(id);
+            if(el) el.classList.add('hidden');
         }
         function pad(num) { return num < 10 ? '0' + num : num; }
         function formatTime(ms) {
