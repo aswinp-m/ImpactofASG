@@ -237,15 +237,31 @@
 
         <!-- 4. Tutorial -->
         <div id="tutorial-screen" class="card hidden">
-            <h2>Tutorial</h2>
-            <p>Please complete the tutorial before beginning the scenarios.</p>
-            <div class="alert" style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;">
-                <strong>Note:</strong> When you click the link, do not close the new tab.
+            <h2>Tutorials</h2>
+            <p>Please complete both tutorial sections below before beginning the scenarios.</p>
+            
+            <!-- Tutorial 1 -->
+            <div style="margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 30px;">
+                <h3>Tutorial Part 1</h3>
+                <div class="alert" style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;">
+                    <strong>Note:</strong> If the PDF does not load, use the link below to open it in a new tab.
+                </div>
+                <a href="tutorials/pdf1.pdf" target="_blank" class="link-display">Open Tutorial 1 (New Tab)</a>
+                <iframe src="tutorials/pdf1.pdf" title="Tutorial Part 1"></iframe>
             </div>
-            <a href="https://beav.es/tutorial" target="_blank" class="link-display">Open Tutorial (New Tab)</a>
-            <iframe src="https://beav.es/tutorial"></iframe>
-            <div style="margin-top: 20px; text-align: right;">
-                <button class="btn" onclick="startConditionOne()">I have completed the Tutorial</button>
+
+            <!-- Tutorial 2 -->
+            <div>
+                <h3>Tutorial Part 2</h3>
+                <div class="alert" style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;">
+                    <strong>Note:</strong> If the PDF does not load, use the link below to open it in a new tab.
+                </div>
+                <a href="tutorials/pdf2.pdf" target="_blank" class="link-display">Open Tutorial 2 (New Tab)</a>
+                <iframe src="tutorials/pdf2.pdf" title="Tutorial Part 2"></iframe>
+            </div>
+
+            <div style="margin-top: 30px; text-align: right;">
+                <button class="btn" onclick="startConditionOne()">I have completed both Tutorials</button>
             </div>
         </div>
 
