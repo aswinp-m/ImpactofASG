@@ -51,14 +51,17 @@
         .link-display {
             display: block;
             margin: 10px 0;
-            padding: 10px;
+            padding: 15px;
             background: #e9ecef;
             border-radius: 6px;
             color: var(--primary);
             text-decoration: none;
             font-weight: bold;
+            border: 1px solid #dee2e6;
         }
-        .link-display:hover { background: #dee2e6; text-decoration: underline; }
+        .link-display:hover { background: #dee2e6; text-decoration: none; border-color: #ced4da; }
+        
+        .ppt-icon { margin-right: 8px; font-size: 1.2em; }
 
         /* Header */
         header {
@@ -238,26 +241,42 @@
         <!-- 4. Tutorial -->
         <div id="tutorial-screen" class="card hidden">
             <h2>Tutorials</h2>
-            <p>Please complete both tutorial sections below before beginning the scenarios.</p>
+            <p>Please review the video and download the tutorial slides below.</p>
             
-            <!-- Tutorial 1 -->
+            <!-- Tutorial 1: YouTube Video -->
             <div style="margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 30px;">
-                <h3>Tutorial Part 1</h3>
-                <div class="alert" style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;">
-                    <strong>Note:</strong> If the PDF does not load, use the link below to open it in a new tab.
+                <h3>Tutorial Part 1: Kibana Basics (Video)</h3>
+                <div class="alert" style="background: #e3f2fd; color: #0d47a1; padding: 10px; border-radius: 4px; margin-bottom:10px;">
+                    <strong>Watch:</strong> Explore and query your Kibana data
                 </div>
-                <a href="tutorials/pdf1.pdf" target="_blank" class="link-display">Open Tutorial 1 (New Tab)</a>
-                <iframe src="tutorials/pdf1.pdf" title="Tutorial Part 1"></iframe>
+                <!-- YouTube Embed -->
+                <iframe 
+                    width="100%" 
+                    height="500" 
+                    src="https://www.youtube.com/embed/b4Edz_ybA_8" 
+                    title="Kibana Tutorial" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                    allowfullscreen>
+                </iframe>
+                
+                <h4 style="margin-top: 20px;">Slides Part 1</h4>
+                <!-- Download Link for PPT 1 -->
+                <a href="pdf1%20((1).pptx" class="link-display" download>
+                    <span class="ppt-icon">📄</span> Download Tutorial 1 Slides (.pptx)
+                </a>
             </div>
 
-            <!-- Tutorial 2 -->
+            <!-- Tutorial 2: PPTX -->
             <div>
-                <h3>Tutorial Part 2</h3>
+                <h3>Tutorial Part 2: Study Specifics (Slides)</h3>
                 <div class="alert" style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;">
-                    <strong>Note:</strong> If the PDF does not load, use the link below to open it in a new tab.
+                    <strong>Action Required:</strong> Please download and open the PowerPoint file below.
                 </div>
-                <a href="tutorials/pdf2.pdf" target="_blank" class="link-display">Open Tutorial 2 (New Tab)</a>
-                <iframe src="tutorials/pdf2.pdf" title="Tutorial Part 2"></iframe>
+                <!-- Download Link for PPT 2 -->
+                <a href="pdf1%20(2).pptx" class="link-display" download>
+                    <span class="ppt-icon">📄</span> Download Tutorial 2 Slides (.pptx)
+                </a>
             </div>
 
             <div style="margin-top: 30px; text-align: right;">
@@ -475,49 +494,54 @@
         // C: S1 Graph -> S2 Log
         // D: S2 Graph -> S1 Log
         
-        // Link Config
-        // S1 Log: Kibana1, Ticket, NASATLX1
-        // S2 Log: Kibana2, Ticket, NASATLX1
-        // S1 Graph: Kibana1, Ticket, ASG1, NASATLXG
-        // S2 Graph: Kibana2, Ticket, ASG2, NASATLXG
+        // --- NEW LINKS CONFIGURATION ---
+        const LINKS = {
+            ticket: "https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_9oGkjSuhbBSiXOu",
+            nasatlx_log: "https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_eW0kItMox2WiZLM", // nasatlx1
+            nasatlx_graph: "https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_a3R9F2TI9dU9jD0", // nasatlxG
+            kibana_s1: "https://beav.es/kibanas1",
+            kibana_s2: "https://beav.es/kibanas2",
+            asg_s1: "https://beav.es/asg1",
+            asg_s2: "https://beav.es/asg2"
+        };
 
         const scenarios = {
             s1_log: {
                 name: "Scenario 1 (Log Only)",
                 links: [
-                    { name: "Kibana Environment", url: "https://beav.es/kibana1" },
-                    { name: "Incident Ticket", url: "https://beav.es/ticket" }
+                    { name: "Kibana Environment", url: LINKS.kibana_s1 },
+                    { name: "Incident Ticket", url: LINKS.ticket }
                 ],
-                survey: "http://beav.es/nasatlx1",
+                survey: LINKS.nasatlx_log,
                 dataView: "scenario1-logs"
             },
             s2_log: {
                 name: "Scenario 2 (Log Only)",
                 links: [
-                    { name: "Kibana Environment", url: "https://beav.es/kibana2" },
-                    { name: "Incident Ticket", url: "https://beav.es/ticket" }
+                    { name: "Kibana Environment", url: LINKS.kibana_s2 },
+                    { name: "Incident Ticket", url: LINKS.ticket }
                 ],
-                survey: "http://beav.es/nasatlx1",
+                survey: LINKS.nasatlx_log,
                 dataView: "scenario2-logs"
             },
             s1_graph: {
                 name: "Scenario 1 (Graph/ASG)",
                 links: [
-                    { name: "Kibana Environment", url: "https://beav.es/kibana1" },
-                    { name: "Incident Ticket", url: "https://beav.es/ticket" },
-                    { name: "Attack Summary Graph (ASG)", url: "https://beav.es/asg1" }
+                    { name: "Kibana Environment", url: LINKS.kibana_s1 },
+                    { name: "Incident Ticket", url: LINKS.ticket },
+                    { name: "Attack Summary Graph (ASG)", url: LINKS.asg_s1 }
                 ],
-                survey: "http://beav.es/nasatlxG",
+                survey: LINKS.nasatlx_graph,
                 dataView: "scenario1-logs"
             },
             s2_graph: {
                 name: "Scenario 2 (Graph/ASG)",
                 links: [
-                    { name: "Kibana Environment", url: "https://beav.es/kibana2" },
-                    { name: "Incident Ticket", url: "https://beav.es/ticket" },
-                    { name: "Attack Summary Graph (ASG)", url: "https://beav.es/asg2" }
+                    { name: "Kibana Environment", url: LINKS.kibana_s2 },
+                    { name: "Incident Ticket", url: LINKS.ticket },
+                    { name: "Attack Summary Graph (ASG)", url: LINKS.asg_s2 }
                 ],
-                survey: "http://beav.es/nasatlxG",
+                survey: LINKS.nasatlx_graph,
                 dataView: "scenario2-logs"
             }
         };
