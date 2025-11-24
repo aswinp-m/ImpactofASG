@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Impact of Provenance Graph Visualization on TtR and Accuracy in Incident Response</title>
+    <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --primary: #007bff;
+            --primary-hover: #0056b3;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --danger: #dc3545;
+            --success: #28a745;
+            --shadow: 0 10px 25px rgba(0,0,0,0.05), 0 5px 10px rgba(0,0,0,0.01);
+            --radius: 12px;
+        }
+
+        * { box-sizing: border-box; transition: all 0.3s ease; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Utility Classes */
+        .hidden { display: none !important; opacity: 0; }
+        .fade-in { animation: fadeIn 0.5s forwards; }
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 500;
+            box-shadow: 0 4px 6px rgba(0,123,255,0.2);
+        }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,123,255,0.3); }
+        .btn-danger { background-color: var(--danger); box-shadow: 0 4px 6px rgba(220, 53, 69, 0.2); }
+        .btn-danger:hover { box-shadow: 0 6px 12px rgba(220, 53, 69, 0.3); }
+        .link-display {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 6px;
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .link-display:hover { background: #dee2e6; text-decoration: underline; }
+
+        /* Header */
+        header {
+            background: var(--card-bg);
+            padding: 15px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        header h1 { font-size: 1.1rem; margin: 0; color: var(--text-muted); }
+        .top-info { text-align: right; font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
+        .timer-display { color: var(--danger); font-family: monospace; font-size: 1.2rem; }
+
+        /* Main Container */
+        main {
+            flex: 1;
+            max-width: 1200px;
+            margin: 40px auto;
+            width: 95%;
+            padding-bottom: 50px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 40px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+        .card h2 { margin-top: 0; color: var(--text-main); }
+        .subtitle { color: var(--text-muted); margin-bottom: 20px; display: block;}
+
+        /* Login Screen */
+        .login-container {
+            max-width: 500px;
+            margin: 100px auto;
+            text-align: center;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 2px solid #e1e4e8;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        input[type="number"]:focus { outline: none; border-color: var(--primary); }
+        .checkbox-group { text-align: left; margin-bottom: 25px; display: flex; align-items: center; gap: 10px;}
+
+        /* Task Layout */
+        .task-layout { display: flex; gap: 20px; flex-wrap: wrap; }
+        .task-main { flex: 2; min-width: 300px; }
+        .task-sidebar {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            font-size: 0.85rem;
+            height: fit-content;
+        }
+
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top;}
+        th { background-color: #f8f9fa; }
+        .osint-list li { margin-bottom: 5px; }
+
+        /* Iframe */
+        iframe { width: 100%; height: 600px; border: 1px solid #ddd; border-radius: 8px; margin-top: 15px; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Debrief Styles */
+        .debrief-section { margin-bottom: 15px; }
+        .debrief-section h3 { font-size: 1rem; color: var(--primary); margin-bottom: 5px; }
+        .stat-box {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: monospace;
+            border-left: 5px solid var(--primary);
+        }
+        .stat-box h4 { margin-top: 0; margin-bottom: 10px; color: var(--primary); }
+        .stat-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .stat-row:last-child { border-bottom: none; }
+        .alert-text { color: var(--danger); font-weight: bold; margin-top: 8px; display: block; }
+    </style>
+</head>
+<body>
+
+    <!-- Header (Hidden initially) -->
+    <header id="app-header" class="hidden">
+        <div>
+            <h1>Impact of Provenance Graph Visualization</h1>
+        </div>
+        <div class="top-info">
+            <div>PID: <span id="display-pid">----</span></div>
+            <div>Global Time: <span id="global-timer" class="timer-display">00:00:00</span></div>
+        </div>
+    </header>
+
+    <main id="main-container">
+        
+        <!-- 1. Login Screen -->
+        <div id="login-screen" class="card login-container fade-in">
+            <h2>Welcome</h2>
+            <p class="subtitle">The Impact of Provenance Graph Visualization on TtR and Accuracy in Incident Response</p>
+            
+            <input type="number" id="pid-input" placeholder="Enter PID (1000-9999)" min="1000" max="9999">
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="consent-check">
+                <label for="consent-check">I've read and signed the consent form.</label>
+            </div>
+
+            <button class="btn" onclick="startStudy()">Begin Study</button>
+            <p id="login-error" style="color:red; display:none; margin-top:10px;">Please enter a valid 4-digit PID and sign consent.</p>
+        </div>
+
+        <!-- 2. Overview Screen -->
+        <div id="overview-screen" class="card hidden">
+            <h2>Overview</h2>
+            <div style="line-height: 1.6;">
+                <p><strong>Study purpose.</strong> We are comparing a standard Kibana log interface with a attack summary graph plug-in to see which helps analysts resolve security incidents faster and more accurately.</p>
+                
+                <h3>Your session at a glance (60 - 120 min)</h3>
+                <ol>
+                    <li>Quick orientation, Demographics quiz & Tutorials.</li>
+                    <li>Investigate two simulated incidents: one with each interface while your screen only is recorded.</li>
+                    <li>Record key findings in an IR ticket, rate your confidence (1–5), then close the ticket.</li>
+                    <li>Fill out two short questionnaires on workload and usability.</li>
+                </ol>
+
+                <h3>What you may use</h3>
+                <p>You may consult open-source intelligence (OSINT) sites such as abuseipdb.com, otx.alienvault.com, and virustotal.com.</p>
+
+                <h3>Confidentiality</h3>
+                <p>Screen recordings and logs are stored on encrypted OSU One drive folders and deleted three years after the study. No names will appear in any publication.</p>
+
+                <h3>Your rights</h3>
+                <p>Participation is voluntary; you may withdraw at any time without penalty.</p>
+
+                <h3>Questions? Contact</h3>
+                <ul style="list-style: none; padding-left: 0;">
+                    <li>Dr Rakesh Bobba (Rakesh.Bobba@oregonstate.edu)</li>
+                    <li>Dave Nevin (Dave.Nevin@oregonstate.edu)</li>
+                    <li>Aswin Pratap Mullankandi (mullanka@oregonstate.edu)</li>
+                    <li>OSU HRPP (irb@oregonstate.edu, 541-737-8008)</li>
+                </ul>
+            </div>
+            <button class="btn" style="margin-top: 20px;" onclick="nextStage('demographics')">Proceed to Demographics</button>
+        </div>
+
+        <!-- 3. Demographics -->
+        <div id="demographics-screen" class="card hidden">
+            <h2>Demographics</h2>
+            <p>Please complete the demographics quiz below.</p>
+            <div class="alert" style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;">
+                <strong>Note:</strong> When you click the link, do not close the new tab.
+            </div>
+            <a href="https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_0HxqhVgVtjeHNAy" target="_blank" class="link-display">Open Demographics Quiz (New Tab)</a>
+            <iframe src="https://qualtricsxm9wbqmsmwc.qualtrics.com/jfe/form/SV_0HxqhVgVtjeHNAy"></iframe>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn" onclick="nextStage('tutorial')">I have completed the Demographics</button>
+            </div>
+        </div>
+
+        <!-- 4. Tutorial -->
+        <div id="tutorial-screen" class="card hidden">
+            <h2>Tutorial</h2>
+            <p>Please complete the tutorial before beginning the scenarios.</p>
+            <div class="alert" style="background: #fff3cd; color: #856404; padding: 10px; border-radius: 4px; margin-bottom:10px;">
+                <strong>Note:</strong> When you click the link, do not close the new tab.
+            </div>
+            <a href="https://beav.es/tutorial" target="_blank" class="link-display">Open Tutorial (New Tab)</a>
+            <iframe src="https://beav.es/tutorial"></iframe>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn" onclick="startConditionOne()">I have completed the Tutorial</button>
+            </div>
+        </div>
+
+        <!-- 5. Active Task Screen (Used for both Task 1 and 2) -->
+        <div id="task-screen" class="hidden">
+            <div class="task-layout">
+                <!-- Main Task Area -->
+                <div class="task-main card">
+                    <h2 id="task-title">Incident Investigation</h2>
+                    
+                    <div id="task-links-area">
+                        <!-- Links injected via JS -->
+                    </div>
+
+                    <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+                        <p><strong>Time Remaining for this Incident:</strong> <span id="task-timer" style="font-size:1.5em; font-weight:bold; color:var(--primary);">45:00</span></p>
+                        <p style="font-size: 0.9em; color: #666;">You may spend up to 45 minutes. A sound will play when time is up.</p>
+                        <button class="btn btn-danger" onclick="stopTask()">STOP & Record Time</button>
+                    </div>
+                </div>
+
+                <!-- Sidebar (Always visible during tasks) -->
+                <div class="task-sidebar">
+                    <h3 style="margin-top:0;">Scenario Info</h3>
+                    <p><strong>Data view:</strong> <span id="sidebar-scenario-name">scenarioX-logs</span></p>
+                    <p style="color: var(--danger); font-size: 0.8em;">Note: Use only the study VM/laptop. Do not enter personal information anywhere.</p>
+                    
+                    <h4>Quick OSINT Links</h4>
+                    <p style="font-size: 0.8em;">Paste results into your ticket as website URLs</p>
+                    <ul class="osint-list" style="padding-left: 20px;">
+                        <li><a href="https://www.abuseipdb.com/" target="_blank">AbuseIPDB</a></li>
+                        <li><a href="https://otx.alienvault.com/" target="_blank">AlienVault OTX</a></li>
+                        <li><a href="https://www.virustotal.com/" target="_blank">VirusTotal</a></li>
+                    </ul>
+
+                    <h4>Six-Step Response Guide</h4>
+                    <table style="font-size: 0.75rem;">
+                        <thead>
+                            <tr>
+                                <th>Step</th>
+                                <th>Log-Only Action</th>
+                                <th>Graph-Based Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>Inspect raw alert payload & timestamp</td>
+                                <td>Open summary graph & inspect timestamp</td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>Query logs to find root-cause process/user</td>
+                                <td>Locate root-cause node and set as seed</td>
+                            </tr>
+                            <tr>
+                                <td>3</td>
+                                <td>Query logs to list affected hosts/files</td>
+                                <td>Expand causal paths to scope impact</td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>Note containment actions in ticket</td>
+                                <td>Same containment actions noted, cross-linked to graph</td>
+                            </tr>
+                            <tr>
+                                <td>5</td>
+                                <td>Verify cessation via last timestamp</td>
+                                <td>Verify graph ceases growth (timestamp of last node)</td>
+                            </tr>
+                            <tr>
+                                <td>6</td>
+                                <td>Document actions and close ticket</td>
+                                <td>Export graph snapshot & attach note</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top: 15px; background: #f8f9fa; padding: 10px; border-radius: 4px;">
+                        <strong>See Raw Logs / Alert Summary Graph</strong>
+                        <p style="margin-bottom:0;">In Kibana → Alerts: open the alert → “View in Discover” to pivot by host, user, IP, hash, PID, filename.</p>
+                        <p class="alert-text">Don't see alerts? Make sure you are in Security-> Alerts not observability -> Alerts</p>
+                        <p style="margin-top:5px;">If ASG is available, start from seed alert node and follow causal edges.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Post-Task Survey Screen -->
+        <div id="survey-screen" class="card hidden">
+            <h2>Workload Survey</h2>
+            <p>Please complete the following workload assessment regarding the task you just finished.</p>
+            <a id="survey-link" href="#" target="_blank" class="link-display">Open Survey (New Tab)</a>
+            <iframe id="survey-iframe" src=""></iframe>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn" onclick="finishSurvey()">Submit Survey & Continue</button>
+            </div>
+        </div>
+
+        <!-- 7. Debrief / End Screen -->
+        <div id="debrief-screen" class="card hidden">
+            <h2>Study Ended - Thank You!</h2>
+            
+            <div class="stat-box">
+                <h4>Performance Summary</h4>
+                <div class="stat-row">
+                    <span>Participant ID:</span>
+                    <strong id="final-pid"></strong>
+                </div>
+                <div class="stat-row">
+                    <span>Condition:</span>
+                    <strong id="final-condition"></strong>
+                </div>
+                <!-- Dynamic Time Entries -->
+                <div class="stat-row">
+                    <span id="label-time-1">Task 1:</span>
+                    <strong id="final-time-1"></strong>
+                </div>
+                <div class="stat-row">
+                    <span id="label-time-2">Task 2:</span>
+                    <strong id="final-time-2"></strong>
+                </div>
+            </div>
+
+            <div class="debrief-section">
+                <h3>Study Title: Impact of Provenance-Graph Visualization on Incident-Response Efficiency</h3>
+                <p><strong>Researchers:</strong><br>
+                Dr. Rakesh Bobba (PI) | Rakesh.Bobba@oregonstate.edu<br>
+                Prof. Dave Nevin (CO-PI) | Dave.Nevin@oregonstate.edu<br>
+                Aswin Pratap Mullankandi (Student PI) | mullanka@oregonstate.edu<br>
+                Byron Magofna (Student Investigator)<br>
+                Julio Ruiz Ibarra (Student Investigator)</p>
+            </div>
+
+            <div class="debrief-section">
+                <h3>What was the purpose of this study?</h3>
+                <p>We compared a traditional Kibana interface with a provenance-graph plug-in addition to see if it helps security analysts solve incidents faster and more accurately. We also examined whether analysts with different experience levels benefit differently.</p>
+            </div>
+
+            <div class="debrief-section">
+                <h3>Why is this important?</h3>
+                <p>SOC teams face alert fatigue; visual tools grounded in Information Foraging Theory may reduce cognitive load and error rates. Evidence from this study could inform future Kibana plug-in design and training curricula.</p>
+            </div>
+
+            <div class="debrief-section">
+                <h3>What data did we collect?</h3>
+                <ul>
+                    <li>Screen recordings and RTIR ticket*</li>
+                    <li>Your SUS and NASA-TLX ratings*</li>
+                    <li>Your demographic answers*</li>
+                </ul>
+                <p><em>*Linked to assigned four digit code</em></p>
+            </div>
+
+            <div class="debrief-section">
+                <h3>Data security & retention</h3>
+                <p>All collected data are stored in encrypted OSU One drive folders and will be deleted three years after the study ends.</p>
+                <h3>Your rights</h3>
+                <p>Data already collected will be retained and may be used for research as explained in the consent form. For questions about your rights, contact the OSU Human Research Protection Program (irb@oregonstate.edu, 541-737-8008).</p>
+            </div>
+
+            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-top: 20px; text-align: center;">
+                <strong>You are entered to win an Amazon gift card!</strong><br>
+                Contact Aswin (mullanka@oregonstate.edu) if you do not want to be considered for this.<br>
+                We will reach out to you if you win.
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Audio Element -->
+    <script>
+        // Simple Beep Sound (Base64 to avoid external file dep)
+        const beepSound = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"); // Placeholder short beep
+        
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        function playAlertSound() {
+            if (audioContext.state === 'suspended') audioContext.resume();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 1);
+            oscillator.stop(audioContext.currentTime + 1);
+        }
+    </script>
+
+    <script>
+        // --- State Management ---
+        const state = {
+            pid: null,
+            condition: null, // A, B, C, D
+            startTime: null, // Global start
+            taskIndex: 0, // 0 = Task 1, 1 = Task 2
+            currentTaskStartTime: null,
+            results: {
+                task1Time: 0,
+                task2Time: 0
+            }
+        };
+
+        let globalInterval;
+        let taskInterval;
+
+        // --- Configuration ---
+        // A: S1 Log -> S2 Graph
+        // B: S2 Log -> S1 Graph
+        // C: S1 Graph -> S2 Log
+        // D: S2 Graph -> S1 Log
+        
+        // Link Config
+        // S1 Log: Kibana1, Ticket, NASATLX1
+        // S2 Log: Kibana2, Ticket, NASATLX1
+        // S1 Graph: Kibana1, Ticket, ASG1, NASATLXG
+        // S2 Graph: Kibana2, Ticket, ASG2, NASATLXG
+
+        const scenarios = {
+            s1_log: {
+                name: "Scenario 1 (Log Only)",
+                links: [
+                    { name: "Kibana Environment", url: "https://beav.es/kibana1" },
+                    { name: "Incident Ticket", url: "https://beav.es/ticket" }
+                ],
+                survey: "http://beav.es/nasatlx1",
+                dataView: "scenario1-logs"
+            },
+            s2_log: {
+                name: "Scenario 2 (Log Only)",
+                links: [
+                    { name: "Kibana Environment", url: "https://beav.es/kibana2" },
+                    { name: "Incident Ticket", url: "https://beav.es/ticket" }
+                ],
+                survey: "http://beav.es/nasatlx1",
+                dataView: "scenario2-logs"
+            },
+            s1_graph: {
+                name: "Scenario 1 (Graph/ASG)",
+                links: [
+                    { name: "Kibana Environment", url: "https://beav.es/kibana1" },
+                    { name: "Incident Ticket", url: "https://beav.es/ticket" },
+                    { name: "Attack Summary Graph (ASG)", url: "https://beav.es/asg1" }
+                ],
+                survey: "http://beav.es/nasatlxG",
+                dataView: "scenario1-logs"
+            },
+            s2_graph: {
+                name: "Scenario 2 (Graph/ASG)",
+                links: [
+                    { name: "Kibana Environment", url: "https://beav.es/kibana2" },
+                    { name: "Incident Ticket", url: "https://beav.es/ticket" },
+                    { name: "Attack Summary Graph (ASG)", url: "https://beav.es/asg2" }
+                ],
+                survey: "http://beav.es/nasatlxG",
+                dataView: "scenario2-logs"
+            }
+        };
+
+        const conditionMap = {
+            'A': ['s1_log', 's2_graph'],
+            'B': ['s2_log', 's1_graph'],
+            'C': ['s1_graph', 's2_log'],
+            'D': ['s2_graph', 's1_log']
+        };
+
+        // --- Functions ---
+
+        function startStudy() {
+            const pidInput = document.getElementById('pid-input').value;
+            const consent = document.getElementById('consent-check').checked;
+
+            if (!pidInput || pidInput < 1000 || pidInput > 9999 || !consent) {
+                document.getElementById('login-error').style.display = 'block';
+                return;
+            }
+
+            // Determine Condition
+            const lastDigit = parseInt(pidInput.toString().slice(-1));
+            state.pid = pidInput;
+
+            if ([1, 8].includes(lastDigit)) state.condition = 'A';
+            else if ([2, 7].includes(lastDigit)) state.condition = 'B';
+            else if ([3, 6].includes(lastDigit)) state.condition = 'C';
+            else if ([4, 5].includes(lastDigit)) state.condition = 'D';
+            else state.condition = 'A'; // Fallback
+            
+            if(lastDigit === 0) state.condition = 'A';
+            if(lastDigit === 9) state.condition = 'D';
+
+            // Start Global Timer
+            state.startTime = Date.now();
+            document.getElementById('display-pid').textContent = state.pid;
+            document.getElementById('app-header').classList.remove('hidden');
+            
+            globalInterval = setInterval(() => {
+                const elapsed = Date.now() - state.startTime;
+                if (elapsed > 2 * 60 * 60 * 1000) {
+                    alert("Study time limit reached.");
+                }
+                document.getElementById('global-timer').textContent = formatTime(elapsed);
+            }, 1000);
+
+            // UI Transition
+            hide('login-screen');
+            show('overview-screen');
+        }
+
+        function nextStage(stageName) {
+            hide('overview-screen');
+            hide('demographics-screen');
+            hide('tutorial-screen');
+
+            if (stageName === 'demographics') show('demographics-screen');
+            else if (stageName === 'tutorial') show('tutorial-screen');
+        }
+
+        function startConditionOne() {
+            hide('tutorial-screen');
+            loadTask(0);
+        }
+
+        function loadTask(index) {
+            state.taskIndex = index;
+            state.currentTaskStartTime = Date.now();
+            
+            const conditionCode = state.condition;
+            const scenarioKey = conditionMap[conditionCode][index];
+            const scenarioData = scenarios[scenarioKey];
+
+            // Render Links
+            const linksArea = document.getElementById('task-links-area');
+            linksArea.innerHTML = ''; // Clear
+            
+            // Inject Links
+            scenarioData.links.forEach(link => {
+                const a = document.createElement('a');
+                a.href = link.url;
+                a.target = "_blank";
+                a.className = "link-display";
+                a.innerHTML = `${link.name} <span style='float:right'>↗</span>`;
+                a.onclick = () => { if(!confirm("Do not close this tab until you are done.")) return false; };
+                linksArea.appendChild(a);
+            });
+
+            // Update Sidebar
+            document.getElementById('sidebar-scenario-name').textContent = scenarioData.dataView;
+            document.getElementById('task-title').textContent = `Task ${index + 1}: ${scenarioData.name}`;
+
+            show('task-screen');
+
+            // Task Timer (45 min limit)
+            clearInterval(taskInterval);
+            taskInterval = setInterval(() => {
+                const elapsed = Date.now() - state.currentTaskStartTime;
+                const timeLeft = (45 * 60 * 1000) - elapsed;
+
+                if (timeLeft <= 0) {
+                    clearInterval(taskInterval);
+                    document.getElementById('task-timer').textContent = "00:00";
+                    playAlertSound();
+                    alert("Time is up for this scenario. Please stop and record findings.");
+                    stopTask(); // Auto-trigger stop sequence
+                } else {
+                    const m = Math.floor(timeLeft / 60000);
+                    const s = Math.floor((timeLeft % 60000) / 1000);
+                    document.getElementById('task-timer').textContent = `${pad(m)}:${pad(s)}`;
+                }
+            }, 1000);
+        }
+
+        function stopTask() {
+            clearInterval(taskInterval);
+            const duration = Date.now() - state.currentTaskStartTime;
+            
+            if (state.taskIndex === 0) state.results.task1Time = duration;
+            else state.results.task2Time = duration;
+
+            alert(`Task Ended. Time recorded: ${formatTime(duration)}`);
+            
+            // Go to Survey
+            hide('task-screen');
+            loadSurvey();
+        }
+
+        function loadSurvey() {
+            const conditionCode = state.condition;
+            const scenarioKey = conditionMap[conditionCode][state.taskIndex];
+            const surveyUrl = scenarios[scenarioKey].survey;
+
+            document.getElementById('survey-link').href = surveyUrl;
+            document.getElementById('survey-iframe').src = surveyUrl;
+            show('survey-screen');
+        }
+
+        function finishSurvey() {
+            hide('survey-screen');
+            
+            if (state.taskIndex === 0) {
+                // Proceed to Task 2
+                loadTask(1);
+            } else {
+                // End Study
+                endStudy();
+            }
+        }
+
+        function endStudy() {
+            playAlertSound();
+            
+            // Get Specific Scenario Names
+            const conditionCode = state.condition;
+            const task1Key = conditionMap[conditionCode][0];
+            const task2Key = conditionMap[conditionCode][1];
+
+            // Populate stats
+            document.getElementById('final-pid').textContent = state.pid;
+            document.getElementById('final-condition').textContent = state.condition;
+            
+            // Set dynamic labels for Task 1 and Task 2 based on what they actually did
+            document.getElementById('label-time-1').textContent = scenarios[task1Key].name + ":";
+            document.getElementById('final-time-1').textContent = formatTime(state.results.task1Time);
+
+            document.getElementById('label-time-2').textContent = scenarios[task2Key].name + ":";
+            document.getElementById('final-time-2').textContent = formatTime(state.results.task2Time);
+
+            show('debrief-screen');
+            clearInterval(globalInterval);
+        }
+
+        // --- Helpers ---
+        function show(id) {
+            const el = document.getElementById(id);
+            el.classList.remove('hidden');
+            el.classList.add('fade-in');
+        }
+        function hide(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+        function pad(num) { return num < 10 ? '0' + num : num; }
+        function formatTime(ms) {
+            const totalSeconds = Math.floor(ms / 1000);
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            return `${pad(h)}:${pad(m)}:${pad(s)}`;
+        }
+
+    </script>
+</body>
+</html>
